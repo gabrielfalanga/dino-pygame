@@ -91,7 +91,7 @@ class Dino:
 
     def pular(self):
         if self.y == self.altura_inicial:  # só pode pular se estiver no chão
-            self.velocidade_y = -10.5  # força do pulo
+            self.velocidade_y = -13.5  # força do pulo 8.5
             self.tempo = 0
             self.pulando = True
 
@@ -99,21 +99,25 @@ class Dino:
         if self.y == self.altura_inicial:  # se estiver no chão
             self.agachado = True
         else:
-            self.velocidade_y = 100
+            self.velocidade_y = 13.5
+            deslocamento = 2 * (self.tempo ** 2) + self.velocidade_y * self.tempo
+            if deslocamento >= 20:
+                deslocamento = 20
+            self.y += deslocamento
 
     def levantar(self):
         self.agachado = False
 
     def mover(self):
-        self.tempo += 1
+        self.tempo += 0.5
 
         # cálculo do deslocamento
                 # aceleração     # t²               # V             # t
-        deslocamento = 1 * (self.tempo ** 2) + self.velocidade_y * self.tempo
+        deslocamento = 2 * (self.tempo ** 2) + self.velocidade_y * self.tempo
 
         # restrição do deslocamento - limita a gravidade
-        if deslocamento >= 30:
-            deslocamento = 30
+        if deslocamento >= 20:
+            deslocamento = 20
 
         # deslocar o dino
         self.y += deslocamento
@@ -163,10 +167,10 @@ class Dino:
 
 
 class Cacto:
-    def __init__(self, x, y):
+    def __init__(self, x, y, velocidade):
         self.x = x
         self.y = y
-        self.velocidade = 10
+        self.velocidade = velocidade
         self.imagem = random.choice(IMGS_CACTOS)
         self.rect = self.imagem.get_rect(bottomleft=(x, y))
         self.passou = False
@@ -203,9 +207,9 @@ class Chao:
     LARGURA = IMG_CHAO.get_width()
     IMAGEM = IMG_CHAO
 
-    def __init__(self, y):
+    def __init__(self, y, velocidade):
         self.y = y
-        self.velocidade = 10
+        self.velocidade = velocidade
         self.x1 = 0
         self.x2 = self.LARGURA
         self.x3 = self.LARGURA * 2
@@ -257,17 +261,20 @@ def desenhar_tela(tela, dinos: [Dino], cactos: [Cacto], chao: Chao, pontos: int)
 
 
 def main():
+    # velocidade do cenário e obstáculos
+    velocidade_jogo = 10
+
     tela = pygame.display.set_mode((TELA_LARGURA, TELA_ALTURA))
     pygame.display.set_caption("Dino Game")
     dinos = [Dino(TELA_LARGURA / 4, TELA_ALTURA / 1.83)]
-    cactos = [Cacto(1300, TELA_ALTURA / 1.83)]
-    chao = Chao(370)
+    cactos = [Cacto(1300, TELA_ALTURA / 1.83, velocidade_jogo)]
+    chao = Chao(370, velocidade_jogo)
     pontos = 0
     clock = pygame.time.Clock()
 
     rodando = True
     while rodando:
-        clock.tick(60)
+        clock.tick(50)
 
         teclas = pygame.key.get_pressed()
 
@@ -292,7 +299,7 @@ def main():
             dino.mover()
         chao.mover()
 
-        # lógica de colisão e adição de cactos
+        # lógica de colisão, pontos e adição de cactos
         adicionar_cacto = False
         remover_cactos = []
         for cacto in cactos:
@@ -301,17 +308,25 @@ def main():
                     dinos.pop(i)
                 if not cacto.passou and dino.x > (cacto.x + cacto.imagem.get_width()) and not dino.pulando:
                     cacto.passou = True
-                    adicionar_cacto = True
+                    pontos += 1
             cacto.mover()
             if cacto.x + cacto.imagem.get_width() < 0:
                 remover_cactos.append(cacto)
 
-        if adicionar_cacto:
-            pontos += 1
-            cactos.append(Cacto(1300, TELA_ALTURA / 1.83))
+        # adicionar cactos
+        if cactos[-1].x <= 970:
+            num = random.randint(1, 50)
+            if num == 1 or cactos[-1].x <= 600:
+                cactos.append(Cacto(1300, TELA_ALTURA / 1.83, velocidade_jogo))
 
         for cacto in remover_cactos:
             cactos.remove(cacto)
+
+        # atualizando velocidade
+        velocidade_jogo += 0.005
+        chao.velocidade = velocidade_jogo
+        for cacto in cactos:
+            cacto.velocidade = velocidade_jogo
 
         desenhar_tela(tela, dinos, cactos, chao, pontos)
 
