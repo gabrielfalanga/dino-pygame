@@ -91,7 +91,7 @@ class Dino:
 
     def pular(self):
         if self.y == self.altura_inicial:  # só pode pular se estiver no chão
-            self.velocidade_y = -13.5  # força do pulo 8.5
+            self.velocidade_y = -13
             self.tempo = 0
             self.pulando = True
 
@@ -200,7 +200,49 @@ class Cacto:
 
 
 class Ptero:
-    pass
+    IMGS = IMGS_PTERO
+    TEMPO_ANIMACAO = 8
+    def __init__(self, x, y, velocidade):
+        self.x = x
+        self.y = y
+        self.velocidade = velocidade
+        self.imagem = self.IMGS[0]
+        self.contagem_imagem = 0
+        self.rect = self.imagem.get_rect(bottomleft=(x, y))
+        self.passou = False
+
+    def mover(self):
+        self.x -= self.velocidade
+
+    def exibir(self, tela):
+        self.contagem_imagem += 1
+
+        # alternar entre as imagens de corrida
+        if self.contagem_imagem < self.TEMPO_ANIMACAO:
+            self.imagem = self.IMGS[0]
+        elif self.contagem_imagem < self.TEMPO_ANIMACAO * 2:
+            self.imagem = self.IMGS[1]
+        else:
+            self.contagem_imagem = 0
+
+        self.rect = self.imagem.get_rect(bottomleft=(self.x, self.y))
+        tela.blit(self.imagem, self.rect)
+
+    def colidiu(self, dino: Dino):
+        # masks
+        dino_mask = dino.get_mask()
+        ptero_mask = pygame.mask.from_surface(self.imagem)
+
+        # distância entre dino e cacto
+        distancia = ((self.x - dino.x), (self.y - round(dino.y)))
+
+        # colisão
+        ponto_colisao = dino_mask.overlap(ptero_mask, distancia)
+
+        if ponto_colisao:
+            return True
+        else:
+            return False
 
 
 class Chao:
@@ -237,7 +279,7 @@ class Nuvem:
     pass
 
 
-def desenhar_tela(tela, dinos: [Dino], cactos: [Cacto], chao: Chao, pontos: int):
+def desenhar_tela(tela, dinos: [Dino], cactos: [Cacto], pteros: [Ptero], chao: Chao, pontos: int):
     # preencher tela
     tela.fill((255, 255, 255))
 
@@ -249,11 +291,15 @@ def desenhar_tela(tela, dinos: [Dino], cactos: [Cacto], chao: Chao, pontos: int)
     for cacto in cactos:
         cacto.exibir(tela)
 
+    # exibir pteros
+    for ptero in pteros:
+        ptero.exibir(tela)
+
     # exibir chão
     chao.exibir(tela)
 
     #pontos
-    texto_pontos = FONTE_TEXTO.render(f'HI 0   {pontos}', 1, (0, 0, 0))
+    texto_pontos = FONTE_TEXTO.render(f'PONTOS: {pontos}', 1, (0, 0, 0))
     tela.blit(texto_pontos, (TELA_LARGURA - 20 - texto_pontos.get_width(), 20))
 
     # atualizar a tela
@@ -268,6 +314,7 @@ def main():
     pygame.display.set_caption("Dino Game")
     dinos = [Dino(TELA_LARGURA / 4, TELA_ALTURA / 1.83)]
     cactos = [Cacto(1300, TELA_ALTURA / 1.83, velocidade_jogo)]
+    pteros = [Ptero(2400, TELA_ALTURA / 2.1, velocidade_jogo)]
     chao = Chao(370, velocidade_jogo)
     pontos = 0
     clock = pygame.time.Clock()
@@ -313,6 +360,9 @@ def main():
             if cacto.x + cacto.imagem.get_width() < 0:
                 remover_cactos.append(cacto)
 
+        for ptero in pteros:
+            ptero.mover()
+
         # adicionar cactos
         if cactos[-1].x <= 970:
             num = random.randint(1, 50)
@@ -327,8 +377,10 @@ def main():
         chao.velocidade = velocidade_jogo
         for cacto in cactos:
             cacto.velocidade = velocidade_jogo
+        for ptero in pteros:
+            ptero.velocidade = velocidade_jogo
 
-        desenhar_tela(tela, dinos, cactos, chao, pontos)
+        desenhar_tela(tela, dinos, cactos, pteros, chao, pontos)
 
 
 if __name__ == '__main__':
